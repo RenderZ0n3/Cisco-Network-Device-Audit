@@ -1,0 +1,2130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Device Audit</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: white;
+            color: #0f172a;
+        }
+
+        .navbar {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 40px;
+        }
+
+        .logo {
+            height: 50px;
+            margin-right: 50px;
+        }
+
+        .nav-menu {
+            list-style: none;
+            display: flex;
+            gap: 40px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .nav-menu li a {
+            text-decoration: none;
+            color: #64748b;
+            font-weight: 500;
+            font-size: 0.95em;
+            transition: color 0.3s ease;
+            padding: 8px 0;
+            border-bottom: 2px solid transparent;
+        }
+
+        .nav-menu li a:hover,
+        .nav-menu li a.active {
+            color: #0f172a;
+            border-bottom-color: #0f172a;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2em;
+            font-weight: 300;
+            color: #0f172a;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 40px;
+            font-size: 1em;
+        }
+
+        .upload-section {
+            background: #f8f9fa;
+            padding: 40px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            text-align: center;
+            border: 2px dashed #cbd5e1;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            border-color: #0f172a;
+        }
+
+        .upload-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 20px;
+            color: #0f172a;
+        }
+
+        .upload-button {
+            display: inline-block;
+            background: #0f172a;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            border: none;
+            font-size: 1em;
+        }
+
+        .upload-button:hover {
+            background: #1e293b;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 300;
+            color: #0f172a;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 0.9em;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #64748b;
+            font-size: 1em;
+            font-weight: 400;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #0f172a;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .check-section {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .check-header {
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .check-title {
+            font-size: 1.2em;
+            font-weight: 500;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .check-status {
+            padding: 6px 16px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .status-compliant {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-noncompliant {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-na {
+            background: #e2e8f0;
+            color: #64748b;
+        }
+
+        .check-description {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .check-description p {
+            color: #334155;
+            font-size: 0.95em;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .check-description ul {
+            list-style: none;
+            margin-top: 15px;
+            padding-left: 0;
+        }
+
+        .check-description li {
+            color: #334155;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .check-description li:before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: #0f172a;
+        }
+
+        .check-info-box {
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            border-left: 4px solid;
+        }
+
+        .info-scope {
+            background: #f0f9ff;
+            border-left-color: #0ea5e9;
+            color: #0c4a6e;
+        }
+
+        .info-why {
+            background: #eff6ff;
+            border-left-color: #3b82f6;
+            color: #1e40af;
+        }
+
+        .info-note {
+            background: #f0f9ff;
+            border-left-color: #0ea5e9;
+            color: #0c4a6e;
+        }
+
+        .check-devices-toggle {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e2e8f0;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s ease;
+        }
+
+        .check-devices-toggle:hover {
+            background: #f1f5f9;
+        }
+
+        .check-devices-toggle span {
+            font-weight: 500;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chevron {
+            transition: transform 0.3s ease;
+        }
+
+        .chevron.rotated {
+            transform: rotate(90deg);
+        }
+
+        .devices-list {
+            padding: 20px;
+            display: none;
+        }
+
+        .devices-list.active {
+            display: block;
+        }
+
+        .device-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .device-info {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .device-status-icon {
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .device-details h4 {
+            font-weight: 500;
+            color: #0f172a;
+            margin-bottom: 5px;
+        }
+
+        .device-details p {
+            font-size: 0.85em;
+            color: #64748b;
+            margin: 3px 0;
+        }
+
+        .device-issues {
+            margin-top: 8px;
+            font-size: 0.85em;
+        }
+
+        .device-issues p {
+            color: #dc2626;
+            margin: 3px 0;
+        }
+
+        .device-badge {
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 500;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #0f172a;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1e293b;
+        }
+
+        .btn-secondary {
+            background: #64748b;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+        }
+
+        .btn-success {
+            background: #16a34a;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #15803d;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <img src="unnamed.png" alt="Logo" class="logo">
+            <ul class="nav-menu">
+                <li><a href="#" class="active">Network Audit</a></li>
+            </ul>
+        </div>
+    </nav>
+    <div id="root"></div>
+    
+    <script type="module">
+        import React, { useState } from 'https://esm.sh/react@18';
+        import ReactDOM from 'https://esm.sh/react-dom@18';
+        
+        const { createElement: h } = React;
+        
+        const Upload = () => h('svg', { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 },
+            h('path', { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" })
+        );
+        
+        const ChevronDown = () => h('svg', { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 },
+            h('polyline', { points: "6 9 12 15 18 9" })
+        );
+        
+        const ChevronRight = () => h('svg', { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 },
+            h('polyline', { points: "9 18 15 12 9 6" })
+        );
+        
+        const Shield = () => h('svg', { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 },
+            h('path', { d: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" })
+        );
+        
+        const CheckCircle = () => h('svg', { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 },
+            h('path', { d: "M22 11.08V12a10 10 0 1 1-5.93-9.14" }),
+            h('polyline', { points: "22 4 12 14.01 9 11.01" })
+        );
+        
+        const XCircle = () => h('svg', { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 },
+            h('circle', { cx: 12, cy: 12, r: 10 }),
+            h('line', { x1: 15, y1: 9, x2: 9, y2: 15 }),
+            h('line', { x1: 9, y1: 9, x2: 15, y2: 15 })
+        );
+
+        const Download = () => h('svg', { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 },
+            h('path', { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" })
+        );
+
+        function NetworkAuditTool() {
+          const [auditResults, setAuditResults] = useState(null);
+          const [loading, setLoading] = useState(false);
+          const [expandedChecks, setExpandedChecks] = useState({});
+
+          const toggleCheck = (checkId) => {
+            setExpandedChecks(prev => ({
+              ...prev,
+              [checkId]: !prev[checkId]
+            }));
+          };
+
+          const calculateSubnetSize = (mask) => {
+            if (mask === '0.0.0.0') return 32;
+            if (mask === '255.255.255.255') return 0;
+            
+            const octets = mask.split('.').map(Number);
+            let cidr = 0;
+            
+            for (let octet of octets) {
+              if (octet === 255) {
+                cidr += 8;
+              } else if (octet === 0) {
+                break;
+              } else {
+                let binary = octet.toString(2);
+                const firstZero = binary.indexOf('0');
+                cidr += firstZero === -1 ? 8 : firstZero;
+                break;
+              }
+            }
+            
+            return 32 - cidr;
+          };
+
+          const parseConfigFile = (filename, content) => {
+            const device = {
+              name: filename.replace('.txt', ''),
+              config: content,
+              checks: {}
+            };
+            
+            // Enhanced device type identification function
+            const getDeviceType = (deviceName, configContent = '') => {
+              const name = deviceName.toUpperCase();
+              
+              // Strong indicators for Switch
+              const switchIndicators = [
+                name.startsWith('S-'),                    // S- prefix
+                /-SW-/.test(name),                        // Contains -SW-
+                /\bSW\b/.test(name),                      // Contains SW as word
+                name.includes('LEAF'),                    // LEAF switches
+                name.includes('SPINE'),                   // SPINE switches
+                name.includes('EOR'),                     // End-of-Row switches
+                name.includes('ACC'),                      // Access switches
+                name.includes('AGG'),                      // Aggregation switches
+                name.includes('OOB') && !name.includes('C8300'), // OOB switches (but not routers)
+              ];
+              
+              // Strong indicators for Router
+              const routerIndicators = [
+                name.startsWith('R-'),                    // R- prefix
+                (name.includes('WAN') && !name.includes('SW')), // WAN routers (not WAN switches)
+                name.includes('C8300'),                   // C8300 routers
+                name.includes('C8500'),                   // C8500 routers
+                name.includes('ASR'),                      // ASR routers
+                name.includes('ISR'),                      // ISR routers
+                name.includes('4451'),                    // 4451 routers
+                name.includes('4331'),                    // 4331 routers
+                name.includes('INTL'),                    // International routers
+              ];
+              
+              // Count indicators
+              const switchScore = switchIndicators.filter(Boolean).length;
+              const routerScore = routerIndicators.filter(Boolean).length;
+              
+              // Check config content if available (more reliable)
+              if (configContent) {
+                const hasSwitchport = /switchport\s+mode/i.test(configContent);
+                const hasSpanningTree = /spanning-tree/i.test(configContent);
+                const hasSwitchProvision = /switch\s+\d+\s+provision/i.test(configContent);
+                const hasRouterCommands = /router\s+(ospf|bgp|eigrp)/i.test(configContent);
+                
+                // Config-based determination (strongest indicator)
+                if (hasSwitchport || hasSpanningTree || hasSwitchProvision) {
+                  // Only classify as switch if no router commands found
+                  if (!hasRouterCommands) {
+                    return 'Switch';
+                  }
+                }
+                if (hasRouterCommands && !hasSwitchport && !hasSpanningTree) {
+                  return 'Router';
+                }
+              }
+              
+              // Name-based determination
+              if (switchScore > routerScore) {
+                return 'Switch';
+              } else if (routerScore > switchScore) {
+                return 'Router';
+              } else {
+                // Tie or no clear indicators - use defaults
+                if (name.startsWith('S-')) return 'Switch';
+                if (name.startsWith('R-')) return 'Router';
+                // Default fallback (conservative - assume Router for unknown)
+                return 'Router';
+              }
+            };
+            
+            // Determine device type and store it
+            device.type = getDeviceType(device.name, content);
+
+            // Check 1: Administrative Services
+            const hasNoHttpServer = content.includes('no ip http server');
+            const hasNoHttpSecure = content.includes('no ip http secure-server');
+            const hasHttpServer = /ip\s+http\s+server/i.test(content);
+            const hasHttpSecureServer = /ip\s+http\s+secure-server/i.test(content);
+            const vtyPattern = /line vty[\s\S]*?(?=line |!$|\n!)/g;
+            const vtyLines = content.match(vtyPattern);
+            
+            let sshOnly = false;
+            let aclApplied = false;
+            let transportDetails = [];
+            let vtyAclDetails = [];
+            let telnetDetected = false;
+            
+            if (vtyLines) {
+              vtyLines.forEach(vtyBlock => {
+                // Check transport input
+                const transportMatch = vtyBlock.match(/transport\s+input\s+([^\n]+)/i);
+                if (transportMatch) {
+                  const transportConfig = transportMatch[1].trim();
+                  transportDetails.push(transportConfig);
+                  if (transportConfig.toLowerCase().includes('ssh') && !transportConfig.toLowerCase().includes('telnet')) {
+                    sshOnly = true;
+                  } else if (transportConfig.toLowerCase().includes('telnet')) {
+                    telnetDetected = true;
+                  }
+                }
+                
+                // Check access-class
+                const aclMatch = vtyBlock.match(/access-class\s+(\S+)\s+(in|out)/i);
+                if (aclMatch) {
+                  aclApplied = true;
+                  vtyAclDetails.push(`ACL ${aclMatch[1]} ${aclMatch[2]}`);
+                }
+              });
+            }
+
+            const adminServicesCompliant = hasNoHttpServer && hasNoHttpSecure && sshOnly && aclApplied;
+            
+            device.checks.adminServices = {
+              compliant: adminServicesCompliant,
+              details: {
+                httpDisabled: hasNoHttpServer && hasNoHttpSecure,
+                hasHttpServer: hasHttpServer,
+                hasHttpSecureServer: hasHttpSecureServer,
+                sshOnly: sshOnly,
+                aclApplied: aclApplied,
+                telnetDetected: telnetDetected,
+                transportDetails: transportDetails,
+                vtyAclDetails: vtyAclDetails
+              }
+            };
+
+            // Check 2: VPN Aggressive Mode
+            const hasCryptoIsakmp = content.includes('crypto isakmp policy');
+            const hasAggressiveMode = content.includes('aggressive');
+            const isakmpPolicyPattern = /crypto\s+isakmp\s+policy\s+(\d+)[\s\S]*?(?=crypto\s+isakmp\s+policy|!|$)/gi;
+            const aggressiveModePolicies = [];
+            
+            // Find ISAKMP policies with aggressive mode
+            let policyMatch;
+            while ((policyMatch = isakmpPolicyPattern.exec(content)) !== null) {
+              const policyBlock = policyMatch[0];
+              const policyNumber = policyMatch[1];
+              if (/aggressive/i.test(policyBlock)) {
+                aggressiveModePolicies.push(policyNumber);
+              }
+            }
+            
+            let vpnCompliant = true;
+            let vpnApplicable = hasCryptoIsakmp;
+            
+            if (hasCryptoIsakmp && hasAggressiveMode) {
+              vpnCompliant = false;
+            }
+            
+            device.checks.vpnAggressiveMode = {
+              compliant: vpnCompliant,
+              applicable: vpnApplicable,
+              details: {
+                hasVpnConfig: hasCryptoIsakmp,
+                aggressiveModeDetected: hasAggressiveMode,
+                aggressiveModePolicies: aggressiveModePolicies
+              }
+            };
+
+            // Check 3: STP BPDU Guard and Root Guard
+            const isRouter = device.type === 'Router';
+            const hasBpduGuardDefault = content.includes('spanning-tree portfast bpduguard default');
+            const hasLoopGuardDefault = content.includes('spanning-tree loopguard default');
+            const hasRootGuard = content.includes('spanning-tree guard root');
+            
+            // Find interfaces with root guard
+            const rootGuardInterfaces = [];
+            const rootGuardInterfacePattern = /interface\s+([^\n]+)\s*\n([\s\S]*?)(?=interface\s+|!|$)/gi;
+            let rootGuardInterfaceMatch;
+            while ((rootGuardInterfaceMatch = rootGuardInterfacePattern.exec(content)) !== null) {
+              const ifaceName = rootGuardInterfaceMatch[1].trim();
+              const ifaceConfig = rootGuardInterfaceMatch[2];
+              if (/spanning-tree\s+guard\s+root/i.test(ifaceConfig)) {
+                rootGuardInterfaces.push(ifaceName);
+              }
+            }
+            
+            let stpCompliant = false;
+            let stpApplicable = !isRouter;
+            
+            if (stpApplicable) {
+              stpCompliant = hasBpduGuardDefault && hasLoopGuardDefault;
+            }
+            
+            device.checks.stpGuards = {
+              compliant: stpCompliant,
+              applicable: stpApplicable,
+              details: {
+                hasBpduGuardDefault: hasBpduGuardDefault,
+                hasLoopGuardDefault: hasLoopGuardDefault,
+                hasRootGuard: hasRootGuard,
+                rootGuardInterfaces: rootGuardInterfaces
+              }
+            };
+
+            // Check 4: User Authentication Without Passwords
+            const usernamePattern = /username\s+(\S+)/g;
+            const usernameMatches = content.match(usernamePattern) || [];
+            const hasUsernameWithSecret = content.match(/username\s+\S+.*?(secret|password)\s+\d+\s+\S+/);
+            const hasNoPassword = content.includes('nopassword');
+            const usernamesWithoutAuth = [];
+            const usernamesWithNopassword = [];
+            
+            // Find all username lines and check for authentication
+            const allUsernameLines = content.match(/^username\s+(\S+)[\s\S]*?(?=^username|^!|$)/gmi);
+            if (allUsernameLines) {
+              allUsernameLines.forEach(usernameLine => {
+                const usernameMatch = usernameLine.match(/username\s+(\S+)/i);
+                if (usernameMatch) {
+                  const username = usernameMatch[1];
+                  const hasSecret = /secret\s+\d+\s+\S+/i.test(usernameLine);
+                  const hasPassword = /password\s+\d+\s+\S+/i.test(usernameLine);
+                  const hasNopassword = /nopassword/i.test(usernameLine);
+                  
+                  if (hasNopassword) {
+                    usernamesWithNopassword.push(username);
+                  } else if (!hasSecret && !hasPassword) {
+                    usernamesWithoutAuth.push(username);
+                  }
+                }
+              });
+            }
+            
+            let userAuthCompliant = true;
+            
+            if (usernamesWithNopassword.length > 0 || usernamesWithoutAuth.length > 0) {
+              userAuthCompliant = false;
+            }
+            
+            if (usernameMatches.length > 0 && !hasUsernameWithSecret) {
+              userAuthCompliant = false;
+            }
+            
+            device.checks.userAuth = {
+              compliant: userAuthCompliant,
+              details: {
+                hasUsernames: usernameMatches.length > 0,
+                hasEncryptedPasswords: hasUsernameWithSecret !== null,
+                hasNoPassword: usernamesWithNopassword.length > 0,
+                hasUsernameWithoutAuth: usernamesWithoutAuth.length > 0,
+                usernamesWithNopassword: usernamesWithNopassword,
+                usernamesWithoutAuth: usernamesWithoutAuth
+              }
+            };
+
+            // Check 5: Interfaces Configured with No Filtering
+            const isRouterDevice = device.type === 'Router';
+            const hasIpAccessGroup = content.includes('ip access-group');
+            const interfacePattern = /interface\s+([^\n]+)\s*\n([\s\S]*?)(?=interface\s+|!|$)/gi;
+            
+            let interfacesWithoutACL = [];
+            let interfacesWithACL = [];
+            let interfaceFilteringCompliant = true;
+            let interfaceFilteringApplicable = isRouterDevice;
+            
+            if (interfaceFilteringApplicable) {
+              let interfaceMatch;
+              while ((interfaceMatch = interfacePattern.exec(content)) !== null) {
+                const interfaceName = interfaceMatch[1].trim();
+                const interfaceConfig = interfaceMatch[2];
+                
+                // Check if it's a Layer 3 interface with IP address
+                const hasIpAddress = /ip\s+address\s+\d+\.\d+\.\d+\.\d+/i.test(interfaceConfig);
+                const isShutdown = /shutdown/i.test(interfaceConfig);
+                const hasACL = /ip\s+access-group/i.test(interfaceConfig);
+                
+                if (hasIpAddress && !isShutdown) {
+                  if (hasACL) {
+                    // Extract ACL name
+                    const aclMatch = interfaceConfig.match(/ip\s+access-group\s+(\S+)\s+(in|out)/i);
+                    interfacesWithACL.push({
+                      name: interfaceName,
+                      acl: aclMatch ? aclMatch[1] : 'unknown',
+                      direction: aclMatch ? aclMatch[2] : 'unknown'
+                    });
+                  } else {
+                    interfacesWithoutACL.push(interfaceName);
+                    interfaceFilteringCompliant = false;
+                  }
+                }
+              }
+            }
+            
+            device.checks.interfaceFiltering = {
+              compliant: interfaceFilteringCompliant,
+              applicable: interfaceFilteringApplicable,
+              details: {
+                interfacesWithoutACL: interfacesWithoutACL,
+                interfacesWithACL: interfacesWithACL,
+                totalInterfacesWithoutACL: interfacesWithoutACL.length,
+                totalInterfacesWithACL: interfacesWithACL.length
+              }
+            };
+
+            // Check 6: DTP (Dynamic Trunking Protocol) Enabled
+            const isSwitchDevice = device.type === 'Switch';
+            const switchInterfacePattern = /interface\s+([^\n]+)\s*\n([\s\S]*?)(?=interface\s+|!|$)/gi;
+            
+            let dtpCompliant = true;
+            let dtpApplicable = isSwitchDevice;
+            let trunkInterfacesWithoutNonegotiate = [];
+            let trunkInterfacesWithNonegotiate = [];
+            let totalTrunkInterfaces = 0;
+            
+            if (dtpApplicable) {
+              let interfaceMatch;
+              while ((interfaceMatch = switchInterfacePattern.exec(content)) !== null) {
+                const interfaceName = interfaceMatch[1].trim();
+                const interfaceConfig = interfaceMatch[2];
+                
+                if (/switchport\s+mode\s+trunk/i.test(interfaceConfig)) {
+                  totalTrunkInterfaces++;
+                  if (!/switchport\s+nonegotiate/i.test(interfaceConfig)) {
+                    trunkInterfacesWithoutNonegotiate.push(interfaceName);
+                    dtpCompliant = false;
+                  } else {
+                    trunkInterfacesWithNonegotiate.push(interfaceName);
+                  }
+                }
+              }
+            }
+            
+            device.checks.dtpEnabled = {
+              compliant: dtpCompliant,
+              applicable: dtpApplicable,
+              details: {
+                totalTrunkInterfaces: totalTrunkInterfaces,
+                trunkInterfacesWithoutNonegotiate: trunkInterfacesWithoutNonegotiate,
+                trunkInterfacesWithNonegotiate: trunkInterfacesWithNonegotiate
+              }
+            };
+
+            // Check 7: Rules Allowing Access to Potentially Sensitive Services
+            const accessListPattern = /access-list\s+(\d+)\s+permit\s+(tcp|udp|ip)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)/gi;
+            const extendedAccessListPattern = /ip\s+access-list\s+extended\s+([^\n]+)[\s\S]*?(?=ip\s+access-list\s+extended|!|$)/gi;
+            
+            let anyAnyRules = 0;
+            let overlyPermissiveRules = 0;
+            let sensitivePortRules = 0;
+            let broadNetworkAccess = 0;
+            let anyAnyRuleDetails = [];
+            let overlyPermissiveRuleDetails = [];
+            let broadNetworkRuleDetails = [];
+            
+            // Check standard access lists
+            let match;
+            while ((match = accessListPattern.exec(content)) !== null) {
+              const [, listId, protocol, source, sourceMask, dest, destPort] = match;
+              const ruleText = `access-list ${listId} permit ${protocol} ${source} ${sourceMask || ''} ${dest} ${destPort || ''}`.trim();
+              
+              // Check for "any any" rules
+              if ((source === 'any' || (source === '0.0.0.0' && sourceMask === '255.255.255.255')) && 
+                  (dest === 'any' || dest === '0.0.0.0')) {
+                anyAnyRules++;
+                anyAnyRuleDetails.push(ruleText);
+              }
+              
+              // Check for broad network access (large subnets)
+              if (sourceMask && sourceMask !== '0.0.0.0' && sourceMask !== '255.255.255.255') {
+                const subnetSize = calculateSubnetSize(sourceMask);
+                if (subnetSize > 16) { // /16 or larger
+                  broadNetworkAccess++;
+                  broadNetworkRuleDetails.push(ruleText);
+                }
+              }
+            }
+            
+            // Check extended access lists
+            let extendedMatch;
+            while ((extendedMatch = extendedAccessListPattern.exec(content)) !== null) {
+              const aclContent = extendedMatch[0];
+              const aclName = extendedMatch[1].trim();
+              
+              // Extract all permit statements from extended ACL
+              const permitPattern = /permit\s+(ip|tcp|udp|icmp|ahp|esp|gre|igmp|ipinip|nos|ospf|pim|tcp|udp|vrrp)\s+([^\n]+)/gi;
+              let permitMatch;
+              while ((permitMatch = permitPattern.exec(aclContent)) !== null) {
+                const fullRule = permitMatch[0].trim();
+                
+                // Check for "permit ip any any" (with optional additional options)
+                if (/permit\s+ip\s+any\s+any(\s|$)/i.test(fullRule)) {
+                  overlyPermissiveRules++;
+                  overlyPermissiveRuleDetails.push(`${aclName}: ${fullRule}`);
+                }
+                
+                // Check for "permit tcp any any" or "permit udp any any" (with optional port/options)
+                if (/permit\s+(tcp|udp)\s+any\s+any/i.test(fullRule)) {
+                  overlyPermissiveRules++;
+                  overlyPermissiveRuleDetails.push(`${aclName}: ${fullRule}`);
+                }
+              }
+            }
+            
+            const sensitiveServicesCompliant = (anyAnyRules === 0 && overlyPermissiveRules === 0);
+            
+            device.checks.sensitiveServices = {
+              compliant: sensitiveServicesCompliant,
+              applicable: true,
+              details: {
+                anyAnyRules: anyAnyRules,
+                overlyPermissiveRules: overlyPermissiveRules,
+                sensitivePortRules: sensitivePortRules,
+                broadNetworkAccess: broadNetworkAccess,
+                anyAnyRuleDetails: anyAnyRuleDetails,
+                overlyPermissiveRuleDetails: overlyPermissiveRuleDetails,
+                broadNetworkRuleDetails: broadNetworkRuleDetails
+              }
+            };
+
+            // Check 8: User Account Names Containing 'admin'
+            const adminKeywords = ['admin', 'administrator', 'root', 'superuser', 'super', 'manager', 'mgr'];
+            const adminUsernamePattern = /username\s+(\S+)\s+(?:privilege\s+(\d+))?/gi;
+            
+            let adminAccounts = [];
+            let administratorAccounts = [];
+            let rootAccounts = [];
+            let otherPrivilegedAccounts = [];
+            let totalUserAccounts = 0;
+            
+            let usernameMatch;
+            while ((usernameMatch = adminUsernamePattern.exec(content)) !== null) {
+              const username = usernameMatch[1].toLowerCase();
+              const privilege = usernameMatch[2] ? parseInt(usernameMatch[2]) : 0;
+              
+              totalUserAccounts++;
+              
+              // Check for admin-related keywords
+              const isAdminAccount = adminKeywords.some(keyword => username.includes(keyword));
+              
+              if (isAdminAccount) {
+                if (username.includes('admin')) {
+                  adminAccounts.push({
+                    username: usernameMatch[1],
+                    privilege: privilege
+                  });
+                } else if (username.includes('administrator')) {
+                  administratorAccounts.push({
+                    username: usernameMatch[1],
+                    privilege: privilege
+                  });
+                } else if (username.includes('root')) {
+                  rootAccounts.push({
+                    username: usernameMatch[1],
+                    privilege: privilege
+                  });
+                } else {
+                  otherPrivilegedAccounts.push({
+                    username: usernameMatch[1],
+                    privilege: privilege
+                  });
+                }
+              }
+            }
+            
+            const adminAccountsCompliant = (adminAccounts.length === 0 && administratorAccounts.length === 0 && 
+                                          rootAccounts.length === 0 && otherPrivilegedAccounts.length === 0);
+            
+            device.checks.adminAccounts = {
+              compliant: adminAccountsCompliant,
+              applicable: true,
+              details: {
+                adminAccounts: adminAccounts,
+                administratorAccounts: administratorAccounts,
+                rootAccounts: rootAccounts,
+                otherPrivilegedAccounts: otherPrivilegedAccounts,
+                totalUserAccounts: totalUserAccounts
+              }
+            };
+
+            // Check 9: Low OSPF Router Priorities
+            const hasOSPFProcess = /router\s+ospf\s+\d+/i.test(content);
+            const isOSPFRouterDevice = device.name.startsWith('R-') || device.name.includes('WAN');
+            
+            let ospfCompliant = true;
+            let ospfApplicable = hasOSPFProcess && isOSPFRouterDevice;
+            let lowPriorityInterfacesList = [];
+            let highPriorityInterfacesList = [];
+            let defaultPriorityInterfacesList = [];
+            
+            if (ospfApplicable) {
+              // Find all interfaces with OSPF priority configurations
+              const interfacePattern = /interface\s+([^\n]+)\s*\n([\s\S]*?)(?=interface\s+|!|$)/gi;
+              let interfaceMatch;
+              
+              while ((interfaceMatch = interfacePattern.exec(content)) !== null) {
+                const interfaceName = interfaceMatch[1].trim();
+                const interfaceConfig = interfaceMatch[2];
+                
+                // Check if interface has OSPF priority configuration
+                const ospfPriorityMatch = interfaceConfig.match(/ip\s+ospf\s+priority\s+(\d+)/i);
+                
+                if (ospfPriorityMatch) {
+                  const priority = parseInt(ospfPriorityMatch[1]);
+                  
+                  if (priority < 10) {
+                    lowPriorityInterfacesList.push({ name: interfaceName, priority: priority });
+                    ospfCompliant = false;
+                  } else if (priority >= 100) {
+                    highPriorityInterfacesList.push({ name: interfaceName, priority: priority });
+                  } else {
+                    defaultPriorityInterfacesList.push({ name: interfaceName, priority: priority });
+                  }
+                } else {
+                  // Check if this is likely an OSPF interface (has IP address, not shutdown)
+                  if (/ip\s+address\s+\d+\.\d+\.\d+\.\d+/i.test(interfaceConfig) && !/shutdown/i.test(interfaceConfig)) {
+                    // Default OSPF priority is 1, which is considered low
+                    lowPriorityInterfacesList.push({ name: interfaceName, priority: 1 });
+                    ospfCompliant = false;
+                  }
+                }
+              }
+            }
+            
+            device.checks.ospfPriorities = {
+              compliant: ospfCompliant,
+              applicable: ospfApplicable,
+              details: {
+                lowPriorityInterfaces: lowPriorityInterfacesList,
+                highPriorityInterfaces: highPriorityInterfacesList,
+                defaultPriorityInterfaces: defaultPriorityInterfacesList,
+                totalOSPFInterfaces: lowPriorityInterfacesList.length + highPriorityInterfacesList.length + defaultPriorityInterfacesList.length
+              }
+            };
+
+            // Check 10: STP Loop Guard Not Enabled
+            const isSTPSwitchDevice = device.name.startsWith('S-');
+            const hasSTPLoopGuardDefault = /spanning-tree\s+loopguard\s+default/i.test(content);
+            const hasLoopGuardInterface = /spanning-tree\s+guard\s+loop/i.test(content);
+            
+            let stpLoopGuardCompliant = true;
+            let stpLoopGuardApplicable = isSTPSwitchDevice;
+            
+            if (stpLoopGuardApplicable) {
+              // Device is compliant if it has global loop guard default OR interface-level loop guard
+              stpLoopGuardCompliant = hasSTPLoopGuardDefault || hasLoopGuardInterface;
+            }
+            
+            device.checks.stpLoopGuard = {
+              compliant: stpLoopGuardCompliant,
+              applicable: stpLoopGuardApplicable,
+              details: {
+                hasLoopGuardDefault: hasSTPLoopGuardDefault,
+                hasLoopGuardInterface: hasLoopGuardInterface
+              }
+            };
+
+            // Check 11: Users Configured with Cisco Type 5 Password Hashing Algorithm
+            const usernameSecretPattern = /username\s+(\S+)\s+(?:privilege\s+(\d+))?\s+secret\s+(\d+)\s+(\S+)/gi;
+            
+            let type5Accounts = [];
+            let type4Accounts = [];
+            let type9Accounts = [];
+            let type14Accounts = [];
+            let type8Accounts = [];
+            let otherAccounts = [];
+            let totalPasswordAccounts = 0;
+            
+            let secretMatch;
+            while ((secretMatch = usernameSecretPattern.exec(content)) !== null) {
+              const [, username, privilege, hashType, hash] = secretMatch;
+              const privilegeLevel = privilege ? parseInt(privilege) : 0;
+              const hashTypeNum = parseInt(hashType);
+              
+              totalPasswordAccounts++;
+              
+              const accountInfo = {
+                username: username,
+                privilege: privilegeLevel,
+                hashType: hashTypeNum,
+                hash: hash
+              };
+              
+              // Categorize by hash type
+              switch (hashTypeNum) {
+                case 4:
+                  type4Accounts.push(accountInfo);
+                  break;
+                case 5:
+                  type5Accounts.push(accountInfo);
+                  break;
+                case 8:
+                  type8Accounts.push(accountInfo);
+                  break;
+                case 9:
+                  type9Accounts.push(accountInfo);
+                  break;
+                case 14:
+                  type14Accounts.push(accountInfo);
+                  break;
+                default:
+                  otherAccounts.push(accountInfo);
+                  break;
+              }
+            }
+            
+            // Device is non-compliant if it has Type 4 or Type 5 (weak MD5) accounts
+            const hasWeakPasswords = type4Accounts.length > 0 || type5Accounts.length > 0;
+            const type5PasswordCompliant = !hasWeakPasswords;
+            
+            device.checks.type5Passwords = {
+              compliant: type5PasswordCompliant,
+              applicable: true,
+              details: {
+                type5Accounts: type5Accounts,
+                type4Accounts: type4Accounts,
+                type9Accounts: type9Accounts,
+                type14Accounts: type14Accounts,
+                type8Accounts: type8Accounts,
+                otherAccounts: otherAccounts,
+                totalUserAccounts: totalPasswordAccounts
+              }
+            };
+
+            // Check 12: No BGP Route Flap Prevention
+            const isBGPRouterDevice = device.name.startsWith('R-') || device.name.includes('WAN');
+            const hasBGPProcess = /router\s+bgp\s+\d+/i.test(content);
+            const hasBGPFlapPrevention = /bgp\s+dampening/i.test(content) || 
+                                       /bgp\s+flap-suppress/i.test(content) || 
+                                       /bgp\s+suppress-map/i.test(content) || 
+                                       /bgp\s+unsuppress-map/i.test(content);
+            
+            let bgpRouteFlapCompliant = true;
+            let bgpRouteFlapApplicable = isBGPRouterDevice && hasBGPProcess;
+            
+            if (bgpRouteFlapApplicable) {
+              bgpRouteFlapCompliant = hasBGPFlapPrevention;
+            }
+            
+            // Extract BGP AS number and neighbors
+            const bgpASMatch = content.match(/router\s+bgp\s+(\d+)/i);
+            const bgpAS = bgpASMatch ? bgpASMatch[1] : null;
+            
+            const neighborPattern = /neighbor\s+([^\s]+)\s+remote-as\s+(\d+)/gi;
+            let bgpNeighbors = [];
+            let neighborMatch;
+            while ((neighborMatch = neighborPattern.exec(content)) !== null) {
+              bgpNeighbors.push({
+                ip: neighborMatch[1],
+                as: neighborMatch[2]
+              });
+            }
+            
+            device.checks.bgpRouteFlap = {
+              compliant: bgpRouteFlapCompliant,
+              applicable: bgpRouteFlapApplicable,
+              details: {
+                hasBGPProcess: hasBGPProcess,
+                hasBGPFlapPrevention: hasBGPFlapPrevention,
+                bgpAS: bgpAS,
+                bgpNeighbors: bgpNeighbors
+              }
+            };
+
+            // Check 13: Unrestricted NTP Control Queries
+            const hasNTPConfig = /ntp\s+server/i.test(content) || /ntp\s+peer/i.test(content);
+            const hasNTPAccessRestrictions = /ntp\s+access-group/i.test(content) || 
+                                           /ntp\s+restrict/i.test(content) || 
+                                           /ntp\s+allow/i.test(content) || 
+                                           /ntp\s+deny/i.test(content);
+            const hasNTPControlQueryRestrictions = /ntp\s+restrict.*kod/i.test(content) || 
+                                                  /ntp\s+restrict.*nomodify/i.test(content) ||
+                                                  /ntp\s+restrict.*noquery/i.test(content) ||
+                                                  /ntp\s+restrict.*notrap/i.test(content);
+            
+            let ntpControlQueriesCompliant = true;
+            let ntpControlQueriesApplicable = hasNTPConfig;
+            
+            if (ntpControlQueriesApplicable) {
+              // Device is compliant if it has both access restrictions AND control query restrictions
+              ntpControlQueriesCompliant = hasNTPAccessRestrictions && hasNTPControlQueryRestrictions;
+            }
+            
+            // Extract NTP servers
+            const ntpServerPattern = /ntp\s+server\s+([^\s]+)(?:\s+prefer)?/gi;
+            let ntpServers = [];
+            let ntpServerMatch;
+            while ((ntpServerMatch = ntpServerPattern.exec(content)) !== null) {
+              ntpServers.push({
+                server: ntpServerMatch[1],
+                prefer: ntpServerMatch[0].includes('prefer')
+              });
+            }
+            
+            // Extract NTP trusted keys
+            const ntpTrustedKeyPattern = /ntp\s+trusted-key\s+(\d+)/gi;
+            let ntpTrustedKeys = [];
+            let ntpKeyMatch;
+            while ((ntpKeyMatch = ntpTrustedKeyPattern.exec(content)) !== null) {
+              ntpTrustedKeys.push(parseInt(ntpKeyMatch[1]));
+            }
+            
+            // Extract NTP source interface
+            const ntpSourceMatch = content.match(/ntp\s+source\s+([^\n]+)/i);
+            const ntpSource = ntpSourceMatch ? ntpSourceMatch[1].trim() : null;
+            
+            device.checks.ntpControlQueries = {
+              compliant: ntpControlQueriesCompliant,
+              applicable: ntpControlQueriesApplicable,
+              details: {
+                hasNTPConfig: hasNTPConfig,
+                hasNTPAccessRestrictions: hasNTPAccessRestrictions,
+                hasNTPControlQueryRestrictions: hasNTPControlQueryRestrictions,
+                ntpServers: ntpServers,
+                ntpTrustedKeys: ntpTrustedKeys,
+                ntpSource: ntpSource
+              }
+            };
+
+            return device;
+          };
+
+          const getPluginOutput = (device, checkKey) => {
+            const check = device.checks[checkKey];
+            if (!check) return 'Check not performed';
+            
+            const isApplicable = check.applicable !== undefined ? check.applicable : true;
+            if (!isApplicable) return 'Not applicable to this device type';
+            
+            const details = check.details || {};
+            let output = [];
+            
+            switch (checkKey) {
+              case 'adminServices':
+                if (!check.compliant) {
+                  if (details.hasHttpServer) output.push('HTTP server is enabled');
+                  if (details.hasHttpSecureServer) output.push('HTTPS server is enabled');
+                  if (details.telnetDetected) {
+                    if (details.transportDetails && details.transportDetails.length > 0) {
+                      output.push(`VTY transport configuration: ${details.transportDetails.join(', ')}`);
+                    } else {
+                      output.push('VTY lines allow Telnet or unrestricted transport');
+                    }
+                  } else if (!details.sshOnly) {
+                    output.push('VTY lines allow Telnet or unrestricted transport');
+                  }
+                  if (!details.aclApplied) {
+                    output.push('No ACL applied to VTY lines');
+                  } else if (details.vtyAclDetails && details.vtyAclDetails.length > 0) {
+                    output.push(`VTY ACLs configured: ${details.vtyAclDetails.join(', ')}`);
+                  }
+                } else {
+                  const compliantDetails = [];
+                  compliantDetails.push('HTTP/HTTPS services disabled');
+                  if (details.transportDetails && details.transportDetails.length > 0) {
+                    compliantDetails.push(`VTY transport: ${details.transportDetails.join(', ')}`);
+                  } else {
+                    compliantDetails.push('SSH-only transport configured');
+                  }
+                  if (details.vtyAclDetails && details.vtyAclDetails.length > 0) {
+                    compliantDetails.push(`VTY ACLs: ${details.vtyAclDetails.join(', ')}`);
+                  } else {
+                    compliantDetails.push('ACLs applied to VTY lines');
+                  }
+                  output.push(compliantDetails.join('; '));
+                }
+                break;
+                
+              case 'vpnAggressiveMode':
+                if (details.aggressiveModeDetected) {
+                  if (details.aggressiveModePolicies && details.aggressiveModePolicies.length > 0) {
+                    output.push(`VPN aggressive mode detected in ISAKMP policy(ies): ${details.aggressiveModePolicies.join(', ')}`);
+                  } else {
+                    output.push('VPN aggressive mode detected in ISAKMP configuration');
+                  }
+                } else {
+                  output.push('No VPN aggressive mode detected; Main Mode configured');
+                }
+                break;
+                
+              case 'stpGuards':
+                if (!check.compliant) {
+                  if (!details.hasBpduGuardDefault) output.push('BPDU Guard not enabled globally');
+                  if (!details.hasLoopGuardDefault) output.push('Loop Guard not enabled globally');
+                  if (!details.hasRootGuard) {
+                    output.push('Root Guard not configured on interfaces');
+                  } else if (details.rootGuardInterfaces && details.rootGuardInterfaces.length > 0) {
+                    output.push(`Root Guard configured on interfaces: ${details.rootGuardInterfaces.join(', ')}`);
+                  }
+                } else {
+                  const stpDetails = [];
+                  stpDetails.push('BPDU Guard and Loop Guard enabled globally');
+                  if (details.rootGuardInterfaces && details.rootGuardInterfaces.length > 0) {
+                    stpDetails.push(`Root Guard configured on: ${details.rootGuardInterfaces.join(', ')}`);
+                  } else if (details.hasRootGuard) {
+                    stpDetails.push('Root Guard configured on interfaces');
+                  }
+                  output.push(stpDetails.join('; '));
+                }
+                break;
+                
+              case 'userAuth':
+                if (!check.compliant) {
+                  if (details.usernamesWithNopassword && details.usernamesWithNopassword.length > 0) {
+                    output.push(`Account(s) with nopassword keyword: ${details.usernamesWithNopassword.join(', ')}`);
+                  }
+                  if (details.usernamesWithoutAuth && details.usernamesWithoutAuth.length > 0) {
+                    output.push(`Username(s) configured without password/secret: ${details.usernamesWithoutAuth.join(', ')}`);
+                  }
+                } else {
+                  output.push('All user accounts have encrypted passwords configured');
+                }
+                break;
+                
+              case 'interfaceFiltering':
+                if (!check.compliant && details.interfacesWithoutACL && details.interfacesWithoutACL.length > 0) {
+                  output.push(`Interfaces without ACLs: ${details.interfacesWithoutACL.join(', ')}`);
+                } else if (check.compliant && details.interfacesWithACL && details.interfacesWithACL.length > 0) {
+                  const aclList = details.interfacesWithACL.map(i => `${i.name} (ACL: ${i.acl} ${i.direction})`).join('; ');
+                  output.push(`All interfaces have ACLs applied: ${aclList}`);
+                } else {
+                  output.push(check.compliant ? 'All Layer 3 interfaces have ACLs applied' : 'No Layer 3 interfaces found');
+                }
+                break;
+                
+              case 'dtpEnabled':
+                if (!check.compliant && details.trunkInterfacesWithoutNonegotiate && details.trunkInterfacesWithoutNonegotiate.length > 0) {
+                  output.push(`Trunk interfaces without DTP disabled: ${details.trunkInterfacesWithoutNonegotiate.join(', ')}`);
+                } else if (check.compliant && details.trunkInterfacesWithNonegotiate && details.trunkInterfacesWithNonegotiate.length > 0) {
+                  output.push(`All trunk interfaces have DTP disabled: ${details.trunkInterfacesWithNonegotiate.join(', ')}`);
+                } else {
+                  output.push(check.compliant ? 'All trunk interfaces have switchport nonegotiate configured' : 'No trunk interfaces found');
+                }
+                break;
+                
+              case 'sensitiveServices':
+                if (!check.compliant) {
+                  if (details.anyAnyRuleDetails && details.anyAnyRuleDetails.length > 0) {
+                    output.push(`${details.anyAnyRules} any-to-any access rule(s) found: ${details.anyAnyRuleDetails.join('; ')}`);
+                  } else if (details.anyAnyRules > 0) {
+                    output.push(`${details.anyAnyRules} any-to-any access rule(s) found`);
+                  }
+                  if (details.overlyPermissiveRuleDetails && details.overlyPermissiveRuleDetails.length > 0) {
+                    output.push(`${details.overlyPermissiveRules} overly permissive rule(s) found: ${details.overlyPermissiveRuleDetails.join('; ')}`);
+                  } else if (details.overlyPermissiveRules > 0) {
+                    output.push(`${details.overlyPermissiveRules} overly permissive rule(s) found`);
+                  }
+                  if (details.broadNetworkRuleDetails && details.broadNetworkRuleDetails.length > 0) {
+                    output.push(`${details.broadNetworkAccess} broad network access rule(s) found: ${details.broadNetworkRuleDetails.join('; ')}`);
+                  }
+                } else {
+                  output.push('No overly permissive access rules found');
+                }
+                break;
+                
+              case 'adminAccounts':
+                if (!check.compliant) {
+                  if (details.adminAccounts && details.adminAccounts.length > 0) {
+                    const accounts = details.adminAccounts.map(a => `${a.username} (privilege ${a.privilege})`).join(', ');
+                    output.push(`Accounts with 'admin' in username: ${accounts}`);
+                  }
+                  if (details.administratorAccounts && details.administratorAccounts.length > 0) {
+                    const accounts = details.administratorAccounts.map(a => `${a.username} (privilege ${a.privilege})`).join(', ');
+                    output.push(`Accounts with 'administrator' in username: ${accounts}`);
+                  }
+                  if (details.rootAccounts && details.rootAccounts.length > 0) {
+                    const accounts = details.rootAccounts.map(a => `${a.username} (privilege ${a.privilege})`).join(', ');
+                    output.push(`Accounts with 'root' in username: ${accounts}`);
+                  }
+                  if (details.otherPrivilegedAccounts && details.otherPrivilegedAccounts.length > 0) {
+                    const accounts = details.otherPrivilegedAccounts.map(a => `${a.username} (privilege ${a.privilege})`).join(', ');
+                    output.push(`Other privileged accounts: ${accounts}`);
+                  }
+                } else {
+                  output.push('No accounts with admin-related keywords found');
+                }
+                break;
+                
+              case 'ospfPriorities':
+                if (!check.compliant) {
+                  if (details.lowPriorityInterfaces && details.lowPriorityInterfaces.length > 0) {
+                    const ifaces = details.lowPriorityInterfaces.map(i => `${i.name} (priority: ${i.priority})`).join(', ');
+                    output.push(`Interfaces with low OSPF priority (<10): ${ifaces}`);
+                  }
+                  if (details.defaultPriorityInterfaces && details.defaultPriorityInterfaces.length > 0) {
+                    const ifaces = details.defaultPriorityInterfaces.map(i => `${i.name} (priority: ${i.priority})`).join(', ');
+                    output.push(`Interfaces with default/medium priority (10-99): ${ifaces}`);
+                  }
+                } else {
+                  if (details.highPriorityInterfaces && details.highPriorityInterfaces.length > 0) {
+                    const ifaces = details.highPriorityInterfaces.map(i => `${i.name} (priority: ${i.priority})`).join(', ');
+                    output.push(`All OSPF interfaces have appropriate priority: ${ifaces}`);
+                  } else {
+                    output.push('All OSPF interfaces have priority >= 10');
+                  }
+                }
+                break;
+                
+              case 'stpLoopGuard':
+                if (!check.compliant) {
+                  output.push('STP Loop Guard not enabled globally or on interfaces');
+                } else {
+                  if (details.hasLoopGuardDefault) output.push('STP Loop Guard enabled globally');
+                  if (details.hasLoopGuardInterface) output.push('STP Loop Guard configured on interfaces');
+                }
+                break;
+                
+              case 'type5Passwords':
+                if (!check.compliant) {
+                  if (details.type4Accounts && details.type4Accounts.length > 0) {
+                    const accounts = details.type4Accounts.map(a => `${a.username} (Type 4 MD5, privilege ${a.privilege})`).join(', ');
+                    output.push(`Accounts using Type 4 (MD5) hashing: ${accounts}`);
+                  }
+                  if (details.type5Accounts && details.type5Accounts.length > 0) {
+                    const accounts = details.type5Accounts.map(a => `${a.username} (Type 5 MD5, privilege ${a.privilege})`).join(', ');
+                    output.push(`Accounts using Type 5 (MD5) hashing: ${accounts}`);
+                  }
+                } else {
+                  const strongTypes = [];
+                  if (details.type8Accounts && details.type8Accounts.length > 0) strongTypes.push(`Type 8 (PBKDF2): ${details.type8Accounts.length}`);
+                  if (details.type9Accounts && details.type9Accounts.length > 0) strongTypes.push(`Type 9 (scrypt): ${details.type9Accounts.length}`);
+                  if (details.type14Accounts && details.type14Accounts.length > 0) strongTypes.push(`Type 14 (SHA-256): ${details.type14Accounts.length}`);
+                  if (strongTypes.length > 0) {
+                    output.push(`All accounts use strong password hashing: ${strongTypes.join(', ')}`);
+                  } else {
+                    output.push('No weak password hashing algorithms detected');
+                  }
+                }
+                break;
+                
+              case 'bgpRouteFlap':
+                if (!check.compliant) {
+                  output.push('No BGP route flap prevention configured');
+                  if (details.bgpAS) output.push(`BGP AS: ${details.bgpAS}`);
+                  if (details.bgpNeighbors && details.bgpNeighbors.length > 0) {
+                    const neighbors = details.bgpNeighbors.map(n => `${n.ip} (AS ${n.as})`).join(', ');
+                    output.push(`BGP Neighbors: ${neighbors}`);
+                  }
+                } else {
+                  output.push('BGP route flap prevention configured');
+                  if (details.bgpAS) output.push(`BGP AS: ${details.bgpAS}`);
+                }
+                break;
+                
+              case 'ntpControlQueries':
+                if (!check.compliant) {
+                  if (!details.hasNTPAccessRestrictions) output.push('No NTP access restrictions configured');
+                  if (!details.hasNTPControlQueryRestrictions) output.push('No NTP control query restrictions configured');
+                  if (details.ntpServers && details.ntpServers.length > 0) {
+                    const servers = details.ntpServers.map(s => s.server + (s.prefer ? ' (prefer)' : '')).join(', ');
+                    output.push(`NTP Servers: ${servers}`);
+                  }
+                } else {
+                  output.push('NTP access restrictions and control query restrictions configured');
+                  if (details.ntpServers && details.ntpServers.length > 0) {
+                    const servers = details.ntpServers.map(s => s.server + (s.prefer ? ' (prefer)' : '')).join(', ');
+                    output.push(`NTP Servers: ${servers}`);
+                  }
+                }
+                break;
+                
+              default:
+                output.push(check.compliant ? 'Compliant' : 'Non-compliant');
+            }
+            
+            return output.length > 0 ? output.join('; ') : 'No details available';
+          };
+
+          const exportToCSV = () => {
+            if (!auditResults) return;
+            
+            const checkNames = {
+              adminServices: 'Rules allowing access to administrative services and clear-text protocol services',
+              vpnAggressiveMode: 'VPN configured with aggressive mode globally',
+              stpGuards: 'STP BPDU guard and root guard not enabled',
+              userAuth: 'User authentication without passwords',
+              interfaceFiltering: 'Interfaces configured with no filtering',
+              dtpEnabled: 'DTP (Dynamic Trunking Protocol) enabled on trunk interfaces',
+              sensitiveServices: 'Rules allowing access to potentially sensitive services',
+              adminAccounts: 'User account names containing \'admin\'',
+              ospfPriorities: 'Low OSPF router priorities',
+              stpLoopGuard: 'STP loop guard not enabled',
+              type5Passwords: 'Users configured with Cisco Type 5 password hashing algorithm',
+              bgpRouteFlap: 'No BGP route flap prevention',
+              ntpControlQueries: 'Unrestricted NTP control queries'
+            };
+            
+            const csvData = [];
+            csvData.push(['Device Name', 'Device Category', 'Check Name', 'Status', 'Applicable', 'Plugin Output']);
+            
+            auditResults.devices.forEach(device => {
+              Object.keys(checkNames).forEach(checkKey => {
+                const check = device.checks[checkKey];
+                if (!check) return;
+                
+                const isApplicable = check.applicable !== undefined ? check.applicable : true;
+                const status = !isApplicable ? 'NOT APPLICABLE' : check.compliant ? 'COMPLIANT' : 'NON-COMPLIANT';
+                const deviceCategory = device.type || (device.name.startsWith('S-') ? 'Switch' : 'Router');
+                const pluginOutput = getPluginOutput(device, checkKey);
+                
+                csvData.push([
+                  device.name,
+                  deviceCategory,
+                  checkNames[checkKey],
+                  status,
+                  isApplicable ? 'Yes' : 'No',
+                  pluginOutput
+                ]);
+              });
+            });
+            
+            // Convert to CSV string
+            const csvContent = csvData.map(row => 
+              row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')
+            ).join('\n');
+            
+            // Download CSV file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `network_audit_results_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          };
+
+          const createCheckSection = (props) => {
+            const { title, checkKey, summary, summaryTotal, description, bullets, scope, whyMatters, note, devices } = props;
+            const isExpanded = expandedChecks[checkKey];
+            const statusClass = summaryTotal === 0 
+              ? 'status-na'
+              : summary === summaryTotal
+              ? 'status-compliant'
+              : 'status-noncompliant';
+            const statusText = summaryTotal === 0 
+              ? (checkKey === 'vpnAggressiveMode' ? 'N/A - No VPN Devices' : 
+                 checkKey === 'stpGuards' ? 'N/A - No Switches' : 
+                 checkKey === 'interfaceFiltering' ? 'N/A - No Routers' :
+                 checkKey === 'dtpEnabled' ? 'N/A - No Switches' :
+                 checkKey === 'ospfPriorities' ? 'N/A - No OSPF Routers' :
+                 checkKey === 'stpLoopGuard' ? 'N/A - No Switches' :
+                 checkKey === 'bgpRouteFlap' ? 'N/A - No BGP Routers' :
+                 checkKey === 'ntpControlQueries' ? 'N/A - No NTP Devices' :
+                 'N/A')
+              : `${summary} / ${summaryTotal} Compliant`;
+
+            return h('div', { className: "check-section" },
+              h('div', { className: "check-header" },
+                h('div', { className: "check-title" },
+                  h(Shield, { style: { width: '24px', height: '24px', color: '#0f172a' } }),
+                  title
+                ),
+                h('span', { className: `check-status ${statusClass}` }, statusText)
+              ),
+              h('div', { className: "check-description" },
+                h('p', null, description),
+                bullets && h('ul', null,
+                  ...bullets.map((bullet, idx) =>
+                    h('li', { key: idx },
+                      h('span', { dangerouslySetInnerHTML: { __html: bullet } })
+                    )
+                  )
+                ),
+                scope && h('div', { className: "check-info-box info-scope" },
+                  h('p', { dangerouslySetInnerHTML: { __html: scope } })
+                ),
+                whyMatters && h('div', { className: "check-info-box info-why" },
+                  h('p', { dangerouslySetInnerHTML: { __html: whyMatters } })
+                )
+              ),
+              h('div', null,
+                h('button', {
+                  onClick: () => toggleCheck(checkKey),
+                  className: "check-devices-toggle"
+                },
+                  h('span', null,
+                    isExpanded ? h(ChevronDown, { className: "chevron rotated", style: { width: '16px', height: '16px' } }) : h(ChevronRight, { className: "chevron", style: { width: '16px', height: '16px' } }),
+                    `Affected Devices (${devices.length} device${devices.length !== 1 ? 's' : ''})`
+                  )
+                ),
+                isExpanded ? h('div', { className: "devices-list active" },
+                  ...[
+                    note ? h('div', { className: "check-info-box info-note", style: { marginBottom: '15px' } },
+                      h('p', { dangerouslySetInnerHTML: { __html: note } })
+                    ) : null,
+                    ...devices.map((device, idx) => {
+                      const check = device.checks[checkKey];
+                      const isApplicable = check && check.applicable !== undefined ? check.applicable : true;
+                      const isCompliant = check ? check.compliant : false;
+                      
+                      return h('div', {
+                        key: idx,
+                        className: "device-item"
+                      },
+                        h('div', { className: "device-info" },
+                          !isApplicable
+                            ? h('div', { className: "device-status-icon", style: { display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' } },
+                                h('span', { style: { fontSize: '20px' } }, '−')
+                              )
+                            : isCompliant
+                            ? h(CheckCircle, { className: "device-status-icon", style: { color: '#16a34a' } })
+                            : h(XCircle, { className: "device-status-icon", style: { color: '#dc2626' } }),
+                          h('div', { className: "device-details" },
+                            h('h4', null, device.name),
+                            !isApplicable && checkKey === 'vpnAggressiveMode' && 
+                              h('p', null, device.name.startsWith('S-') ? 'Switch - VPN/ISAKMP Not Applicable' : 'No VPN/ISAKMP configuration found'),
+                            !isApplicable && checkKey === 'stpGuards' && 
+                              h('p', null, 'Router - STP not applicable'),
+                            !isApplicable && checkKey === 'interfaceFiltering' && 
+                              h('p', null, 'Switch - Interface ACLs not applicable'),
+                            !isApplicable && checkKey === 'dtpEnabled' && 
+                              h('p', null, 'Router - DTP not applicable'),
+                            !isApplicable && checkKey === 'ospfPriorities' && 
+                              h('p', null, 'Switch - OSPF not applicable'),
+                            !isApplicable && checkKey === 'stpLoopGuard' && 
+                              h('p', null, 'Router - STP not applicable'),
+                            !isApplicable && checkKey === 'bgpRouteFlap' && 
+                              h('p', null, device.name.startsWith('S-') ? 'Switch - BGP not applicable' : 'Router - No BGP configured'),
+                            !isApplicable && checkKey === 'ntpControlQueries' && 
+                              h('p', null, 'No NTP configuration found'),
+                            isApplicable && !isCompliant && check && check.details && h('div', { className: "device-issues" },
+                              checkKey === 'adminServices' && !check.details.httpDisabled && 
+                                h('p', null, '• HTTP services enabled'),
+                              checkKey === 'adminServices' && !check.details.sshOnly && 
+                                h('p', null, '• Telnet or unrestricted transport allowed'),
+                              checkKey === 'adminServices' && !check.details.aclApplied && 
+                                h('p', null, '• No ACL applied to VTY lines'),
+                              checkKey === 'vpnAggressiveMode' && check.details.aggressiveModeDetected && 
+                                h('p', null, '• Aggressive mode detected in VPN configuration'),
+                              checkKey === 'stpGuards' && !check.details.hasBpduGuardDefault && 
+                                h('p', null, '• BPDU Guard not enabled globally'),
+                              checkKey === 'stpGuards' && !check.details.hasLoopGuardDefault && 
+                                h('p', null, '• Loop Guard not enabled globally'),
+                              checkKey === 'userAuth' && check.details.hasNoPassword && 
+                                h('p', null, '• Account(s) configured with \'nopassword\' keyword'),
+                              checkKey === 'userAuth' && check.details.hasUsernameWithoutAuth && 
+                                h('p', null, '• Username(s) configured without password/secret'),
+                              checkKey === 'interfaceFiltering' && check.details.interfacesWithoutACL && check.details.interfacesWithoutACL.length > 0 && 
+                                h('p', null, `• Interfaces without ACLs: ${check.details.interfacesWithoutACL.join(', ')}`),
+                              checkKey === 'dtpEnabled' && check.details.trunkInterfacesWithoutNonegotiate && check.details.trunkInterfacesWithoutNonegotiate.length > 0 && 
+                                h('p', null, `• Trunk interfaces without DTP disabled: ${check.details.trunkInterfacesWithoutNonegotiate.join(', ')}`),
+                              checkKey === 'sensitiveServices' && check.details.anyAnyRules > 0 && 
+                                h('p', null, `• ${check.details.anyAnyRules} any-to-any access rule(s) found`),
+                              checkKey === 'sensitiveServices' && check.details.overlyPermissiveRules > 0 && 
+                                h('p', null, `• ${check.details.overlyPermissiveRules} overly permissive rule(s) found`),
+                              checkKey === 'adminAccounts' && check.details.adminAccounts && check.details.adminAccounts.length > 0 && 
+                                h('p', null, `• ${check.details.adminAccounts.length} account(s) with 'admin' in username`),
+                              checkKey === 'adminAccounts' && check.details.administratorAccounts && check.details.administratorAccounts.length > 0 && 
+                                h('p', null, `• ${check.details.administratorAccounts.length} account(s) with 'administrator' in username`),
+                              checkKey === 'adminAccounts' && check.details.rootAccounts && check.details.rootAccounts.length > 0 && 
+                                h('p', null, `• ${check.details.rootAccounts.length} account(s) with 'root' in username`),
+                              checkKey === 'ospfPriorities' && check.details.lowPriorityInterfaces && check.details.lowPriorityInterfaces.length > 0 && 
+                                h('p', null, `• Interfaces with low OSPF priority (<10): ${check.details.lowPriorityInterfaces.map(i => `${i.name} (priority: ${i.priority})`).join(', ')}`),
+                              checkKey === 'stpLoopGuard' && !check.details.hasLoopGuardDefault && !check.details.hasLoopGuardInterface && 
+                                h('p', null, '• No STP loop guard configuration found'),
+                              checkKey === 'type5Passwords' && check.details.type5Accounts && check.details.type5Accounts.length > 0 && 
+                                h('p', null, `• ${check.details.type5Accounts.length} account(s) using Type 5 (MD5) password hashing`),
+                              checkKey === 'type5Passwords' && check.details.type4Accounts && check.details.type4Accounts.length > 0 && 
+                                h('p', null, `• ${check.details.type4Accounts.length} account(s) using Type 4 (MD5) password hashing`),
+                              checkKey === 'bgpRouteFlap' && !check.details.hasBGPFlapPrevention && 
+                                h('p', null, '• No BGP route flap prevention configured'),
+                              checkKey === 'ntpControlQueries' && !check.details.hasNTPAccessRestrictions && 
+                                h('p', null, '• No NTP access restrictions configured'),
+                              checkKey === 'ntpControlQueries' && !check.details.hasNTPControlQueryRestrictions && 
+                                h('p', null, '• No NTP control query restrictions configured')
+                            )
+                          )
+                        ),
+                        h('div', null,
+                          h('span', {
+                            className: `device-badge ${!isApplicable ? 'status-na' : isCompliant ? 'status-compliant' : 'status-noncompliant'}`
+                          }, !isApplicable ? 'NOT APPLICABLE' : isCompliant ? 'COMPLIANT' : 'NON-COMPLIANT')
+                        )
+                      );
+                    })
+                  ].filter(Boolean)
+                ) : null
+              )
+            );
+          };
+
+          const handleFileUpload = async (event) => {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+
+            setLoading(true);
+            
+            try {
+              const devices = [];
+              const processedFiles = new Map();
+              const allFilesFound = [];
+              const duplicatesSkipped = [];
+              
+              for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                
+                if (file.name.endsWith('.zip')) {
+                  if (typeof JSZip === 'undefined') {
+                    throw new Error('JSZip library not loaded. Please refresh the page and try again.');
+                  }
+                  const zip = new JSZip();
+                  const zipContent = await zip.loadAsync(file);
+                  
+                  for (const filename of Object.keys(zipContent.files)) {
+                    if (filename.endsWith('.txt') && !zipContent.files[filename].dir) {
+                      const baseFilename = filename.split('/').pop();
+                      
+                      // Skip macOS metadata files (._filename) and __MACOSX folder
+                      if (baseFilename.startsWith('._') || filename.includes('__MACOSX')) {
+                        console.log('⊗ Skipped macOS metadata file:', filename);
+                        continue;
+                      }
+                      
+                      allFilesFound.push({ full: filename, base: baseFilename });
+                      
+                      if (!processedFiles.has(baseFilename)) {
+                        const content = await zipContent.files[filename].async('text');
+                        devices.push(parseConfigFile(baseFilename, content));
+                        processedFiles.set(baseFilename, true);
+                        console.log('✓ Processed:', baseFilename);
+                      } else {
+                        duplicatesSkipped.push(filename);
+                        console.log('⊗ Skipped duplicate:', filename);
+                      }
+                    }
+                  }
+                } else if (file.name.endsWith('.txt')) {
+                  const baseFilename = file.name.split('/').pop();
+                  allFilesFound.push({ full: file.name, base: baseFilename });
+                  
+                  if (!processedFiles.has(baseFilename)) {
+                    const content = await file.text();
+                    devices.push(parseConfigFile(baseFilename, content));
+                    processedFiles.set(baseFilename, true);
+                    console.log('✓ Processed:', baseFilename);
+                  } else {
+                    duplicatesSkipped.push(file.name);
+                    console.log('⊗ Skipped duplicate:', file.name);
+                  }
+                }
+              }
+
+              console.log('\n=== FILE PROCESSING SUMMARY ===');
+              console.log('Total files found:', allFilesFound.length);
+              console.log('Unique devices processed:', devices.length);
+              console.log('Duplicates skipped:', duplicatesSkipped.length);
+              console.log('\nUnique filenames:', Array.from(processedFiles.keys()));
+              console.log('\nAll files found in ZIP:');
+              allFilesFound.forEach(f => console.log('  -', f.full, '→', f.base));
+
+              const adminServicesCompliant = devices.filter(d => d.checks.adminServices.compliant).length;
+              const vpnAggressiveModeCompliant = devices.filter(d => d.checks.vpnAggressiveMode.applicable && d.checks.vpnAggressiveMode.compliant).length;
+              const vpnApplicableDevices = devices.filter(d => d.checks.vpnAggressiveMode.applicable).length;
+              const stpGuardsCompliant = devices.filter(d => d.checks.stpGuards.applicable && d.checks.stpGuards.compliant).length;
+              const stpApplicableDevices = devices.filter(d => d.checks.stpGuards.applicable).length;
+              const userAuthCompliant = devices.filter(d => d.checks.userAuth.compliant).length;
+              const interfaceFilteringCompliant = devices.filter(d => d.checks.interfaceFiltering.applicable && d.checks.interfaceFiltering.compliant).length;
+              const interfaceFilteringApplicableDevices = devices.filter(d => d.checks.interfaceFiltering.applicable).length;
+              const dtpEnabledCompliant = devices.filter(d => d.checks.dtpEnabled.applicable && d.checks.dtpEnabled.compliant).length;
+              const dtpEnabledApplicableDevices = devices.filter(d => d.checks.dtpEnabled.applicable).length;
+              const sensitiveServicesCompliant = devices.filter(d => d.checks.sensitiveServices.compliant).length;
+              const adminAccountsCompliant = devices.filter(d => d.checks.adminAccounts.compliant).length;
+              const ospfPrioritiesCompliant = devices.filter(d => d.checks.ospfPriorities.applicable && d.checks.ospfPriorities.compliant).length;
+              const ospfPrioritiesApplicableDevices = devices.filter(d => d.checks.ospfPriorities.applicable).length;
+              const stpLoopGuardCompliant = devices.filter(d => d.checks.stpLoopGuard.applicable && d.checks.stpLoopGuard.compliant).length;
+              const stpLoopGuardApplicableDevices = devices.filter(d => d.checks.stpLoopGuard.applicable).length;
+              const type5PasswordsCompliant = devices.filter(d => d.checks.type5Passwords.compliant).length;
+              const bgpRouteFlapCompliant = devices.filter(d => d.checks.bgpRouteFlap.applicable && d.checks.bgpRouteFlap.compliant).length;
+              const bgpRouteFlapApplicableDevices = devices.filter(d => d.checks.bgpRouteFlap.applicable).length;
+              const ntpControlQueriesCompliant = devices.filter(d => d.checks.ntpControlQueries.applicable && d.checks.ntpControlQueries.compliant).length;
+              const ntpControlQueriesApplicableDevices = devices.filter(d => d.checks.ntpControlQueries.applicable).length;
+              
+              setAuditResults({
+                devices,
+                summary: {
+                  total: devices.length,
+                  adminServicesCompliant,
+                  vpnAggressiveModeCompliant,
+                  vpnApplicableDevices,
+                  stpGuardsCompliant,
+                  stpApplicableDevices,
+                  userAuthCompliant,
+                  interfaceFilteringCompliant,
+                  interfaceFilteringApplicableDevices,
+                  dtpEnabledCompliant,
+                  dtpEnabledApplicableDevices,
+                  sensitiveServicesCompliant,
+                  adminAccountsCompliant,
+                  ospfPrioritiesCompliant,
+                  ospfPrioritiesApplicableDevices,
+                  stpLoopGuardCompliant,
+                  stpLoopGuardApplicableDevices,
+                  type5PasswordsCompliant,
+                  bgpRouteFlapCompliant,
+                  bgpRouteFlapApplicableDevices,
+                  ntpControlQueriesCompliant,
+                  ntpControlQueriesApplicableDevices
+                }
+              });
+            } catch (error) {
+              console.error('Error processing files:', error);
+              alert('Error processing files: ' + error.message);
+            } finally {
+              setLoading(false);
+            }
+          };
+
+          return h('div', { className: "container" },
+            h('h1', null, 'Network Device Audit'),
+            h('p', { className: "subtitle" },
+              'Comprehensive security configuration analysis for Cisco network devices'
+            ),
+
+            !auditResults && !loading && h('div', { className: "upload-section" },
+              h('label', { htmlFor: "file-upload", style: { cursor: 'pointer' } },
+                h('div', null,
+                  h(Upload, { className: "upload-icon" }),
+                  h('h3', { style: { fontSize: '1.2em', fontWeight: '500', marginBottom: '10px', color: '#0f172a' } }, 'Upload Configuration Files'),
+                  h('p', { style: { color: '#64748b', marginBottom: '20px' } },
+                    'Select a ZIP file containing configuration files or individual .txt files'
+                  ),
+                  h('div', { className: "upload-button" },
+                    'Choose Files'
+                  )
+                )
+              ),
+              h('input', {
+                id: "file-upload",
+                type: "file",
+                multiple: true,
+                accept: ".txt,.zip",
+                onChange: handleFileUpload,
+                className: "hidden"
+              })
+            ),
+
+            loading && h('div', { className: "loading" },
+              h('div', { className: "spinner" }),
+              h('p', null, 'Processing configuration files...')
+            ),
+
+            (auditResults && !loading) && h('div', null,
+              h('div', { className: "button-group" },
+                h('button', {
+                  onClick: exportToCSV,
+                  className: "btn btn-success"
+                },
+                  h(Download, { style: { width: '20px', height: '20px' } }),
+                  h('span', null, 'Export CSV')
+                ),
+                h('button', {
+                  onClick: () => setAuditResults(null),
+                  className: "btn btn-secondary"
+                }, 'Upload New Files')
+              ),
+
+              h('div', { className: "stats-grid" },
+                  h('div', { className: "stat-card" },
+                    h('div', { className: "stat-value" }, '13'),
+                    h('div', { className: "stat-label" }, 'Total Checks Performed')
+                  ),
+                  h('div', { className: "stat-card" },
+                    h('div', { className: "stat-value" }, auditResults.summary.total),
+                    h('div', { className: "stat-label" }, 'Number of Devices Evaluated')
+                  ),
+                  h('div', { className: "stat-card" },
+                    h('div', { className: "stat-value" }, (() => {
+                      let fullyCompliantDevices = 0;
+                      auditResults.devices.forEach(device => {
+                        const checkKeys = ['adminServices', 'vpnAggressiveMode', 'stpGuards', 'userAuth', 'interfaceFiltering', 'dtpEnabled', 'sensitiveServices', 'adminAccounts', 'ospfPriorities', 'stpLoopGuard', 'type5Passwords', 'bgpRouteFlap', 'ntpControlQueries'];
+                        let isFullyCompliant = true;
+                        let hasApplicableChecks = false;
+                        checkKeys.forEach(key => {
+                          const check = device.checks[key];
+                          if (check && check.applicable !== undefined ? check.applicable : true) {
+                            hasApplicableChecks = true;
+                            if (!check.compliant) {
+                              isFullyCompliant = false;
+                            }
+                          }
+                        });
+                        if (hasApplicableChecks && isFullyCompliant) {
+                          fullyCompliantDevices++;
+                        }
+                      });
+                      return fullyCompliantDevices;
+                    })()),
+                    h('div', { className: "stat-label" }, 'Fully Compliant Devices')
+                  ),
+                  h('div', { className: "stat-card" },
+                    h('div', { className: "stat-value" }, (() => {
+                      let nonCompliantDevices = 0;
+                      auditResults.devices.forEach(device => {
+                        const checkKeys = ['adminServices', 'vpnAggressiveMode', 'stpGuards', 'userAuth', 'interfaceFiltering', 'dtpEnabled', 'sensitiveServices', 'adminAccounts', 'ospfPriorities', 'stpLoopGuard', 'type5Passwords', 'bgpRouteFlap', 'ntpControlQueries'];
+                        let hasNonCompliantChecks = false;
+                        checkKeys.forEach(key => {
+                          const check = device.checks[key];
+                          const isApplicable = check.applicable !== undefined ? check.applicable : true;
+                          if (check && isApplicable && !check.compliant) {
+                            hasNonCompliantChecks = true;
+                          }
+                        });
+                        if (hasNonCompliantChecks) {
+                          nonCompliantDevices++;
+                        }
+                      });
+                      return nonCompliantDevices;
+                    })()),
+                    h('div', { className: "stat-label" }, 'Non-Compliant Devices')
+                  )
+                ),
+
+                h('div', null,
+                  createCheckSection({
+                    title: 'Rules allowing access to administrative services and clear-text protocol services',
+                    checkKey: 'adminServices',
+                    summary: auditResults.summary.adminServicesCompliant,
+                    summaryTotal: auditResults.summary.total,
+                    description: 'This audit verifies that network devices are configured to prevent unauthorized access through administrative services and insecure clear-text protocols. We check that:',
+                    bullets: [
+                      '<strong>HTTP/HTTPS services are disabled</strong> to prevent web-based attacks',
+                      '<strong>VTY lines accept SSH only</strong> (not Telnet) to ensure encrypted remote access',
+                      '<strong>Access Control Lists (ACLs) are applied</strong> to restrict management access to authorized IPs'
+                    ],
+                    whyMatters: '<strong>Why it matters:</strong> Clear-text protocols like Telnet and HTTP transmit credentials and data without encryption, making them vulnerable to interception. Proper access controls prevent unauthorized device management.',
+                    devices: auditResults.devices
+                  }),
+                  createCheckSection({
+                    title: 'VPN configured with aggressive mode globally',
+                    checkKey: 'vpnAggressiveMode',
+                    summary: auditResults.summary.vpnAggressiveModeCompliant,
+                    summaryTotal: auditResults.summary.vpnApplicableDevices,
+                    description: 'This audit verifies that VPN/IPSec configurations do not use aggressive mode for ISAKMP negotiations. We check that:',
+                    bullets: [
+                      '<strong>Crypto ISAKMP policies exist</strong> on devices with VPN configurations',
+                      '<strong>No aggressive mode is configured</strong> in ISAKMP policies (Main Mode should be used instead)'
+                    ],
+                    scope: '<strong>Scope:</strong> This check applies to <strong>routers and security appliances</strong> that handle VPN connections (site-to-site or remote access VPN). It looks for crypto isakmp policy commands and searches for the aggressive keyword in the configuration.',
+                    whyMatters: '<strong>Why it matters:</strong> Aggressive mode transmits identities in cleartext during IKE negotiation and is vulnerable to offline dictionary attacks. Main Mode provides better security by encrypting identity information and should always be used instead.',
+                    note: '<strong>Note:</strong> Switches are marked as &quot;Not Applicable&quot; for this check because VPN/IPSec configurations are typically only present on routers and security appliances that handle site-to-site or remote access VPN connections.',
+                    devices: auditResults.devices
+                  }),
+                  createCheckSection({
+                    title: 'STP BPDU guard and root guard not enabled',
+                    checkKey: 'stpGuards',
+                    summary: auditResults.summary.stpGuardsCompliant,
+                    summaryTotal: auditResults.summary.stpApplicableDevices,
+                    description: 'This audit verifies that Spanning Tree Protocol (STP) security features are properly configured to prevent network loops and unauthorized topology changes. We check that:',
+                    bullets: [
+                      '<strong>BPDU Guard is enabled globally</strong> via spanning-tree portfast bpduguard default',
+                      '<strong>Loop Guard is enabled globally</strong> via spanning-tree loopguard default',
+                      '<strong>Root Guard is configured</strong> on uplink/trunk ports via spanning-tree guard root'
+                    ],
+                    scope: '<strong>Scope:</strong> This check applies to <strong>Layer 2 switches</strong> that participate in spanning tree. We look for global STP protection commands and interface-level root guard configurations. The check requires both BPDU guard and loop guard to be enabled globally for compliance.',
+                    whyMatters: '<strong>Why it matters:</strong> BPDU Guard protects against rogue switches and accidental topology changes by shutting down ports that receive unexpected BPDUs. Loop Guard prevents alternate or root ports from becoming designated ports due to unidirectional link failures, preventing loops. Root Guard prevents downstream switches from becoming the root bridge, maintaining a stable network topology.',
+                    note: '<strong>Note:</strong> Routers are marked as &quot;Not Applicable&quot; for this check because Spanning Tree Protocol (STP) is a Layer 2 protocol used by switches to prevent network loops. Routers operate at Layer 3 and do not participate in STP domains.',
+                    devices: auditResults.devices
+                  }),
+                  createCheckSection({
+                    title: 'User authentication without passwords',
+                    checkKey: 'userAuth',
+                    summary: auditResults.summary.userAuthCompliant,
+                    summaryTotal: auditResults.summary.total,
+                    description: 'This audit verifies that all user accounts on network devices have proper password authentication configured. We check that:',
+                    bullets: [
+                      '<strong>All username accounts have encrypted passwords</strong> configured with secret or password',
+                      '<strong>No accounts use the nopassword keyword</strong> which allows authentication without credentials',
+                      '<strong>Passwords are encrypted</strong> (Type 5 MD5, Type 8 PBKDF2, or Type 9 scrypt)'
+                    ],
+                    scope: '<strong>Scope:</strong> This check applies to <strong>all network devices</strong> (switches and routers). We search for username commands and verify they include secret or password with encrypted hashes.',
+                    whyMatters: '<strong>Why it matters:</strong> Passwordless user accounts create a critical security vulnerability by allowing unauthorized access to network devices with full administrative privileges. All local user accounts must require strong authentication.',
+                    devices: auditResults.devices
+                  }),
+                  createCheckSection({
+                    title: 'Interfaces configured with no filtering',
+                    checkKey: 'interfaceFiltering',
+                    summary: auditResults.summary.interfaceFilteringCompliant,
+                    summaryTotal: auditResults.summary.interfaceFilteringApplicableDevices,
+                    description: 'This audit verifies that router interfaces have appropriate access control lists (ACLs) applied to filter traffic. We check that:',
+                    bullets: [
+                      '<strong>Layer 3 interfaces have IP addresses configured</strong> (GigabitEthernet, FastEthernet, Tunnel, Loopback)',
+                      '<strong>ACLs are applied to interfaces</strong> via ip access-group commands'
+                    ],
+                    scope: '<strong>Scope:</strong> This check applies to <strong>routers</strong> that route traffic between networks. We look for Layer 3 interfaces with IP addresses and verify that ACLs are configured to filter traffic.',
+                    whyMatters: '<strong>Why it matters:</strong> Without ACLs, router interfaces permit all traffic by default, allowing unauthorized access and potential attacks. ACLs provide essential traffic filtering and security controls at network boundaries.',
+                    note: '<strong>Note:</strong> Switches are marked as &quot;Not Applicable&quot; for this check because interface-level ACLs are primarily a router security control for filtering traffic between networks.',
+                    devices: auditResults.devices
+                  }),
+                  createCheckSection({
+                    title: 'DTP (Dynamic Trunking Protocol) enabled on trunk interfaces',
+                    checkKey: 'dtpEnabled',
+                    summary: auditResults.summary.dtpEnabledCompliant,
+                    summaryTotal: auditResults.summary.dtpEnabledApplicableDevices,
+                    description: 'This audit verifies that Dynamic Trunking Protocol (DTP) is disabled on all trunk interfaces to prevent unauthorized trunk formation. We check that:',
+                    bullets: [
+                      '<strong>All trunk interfaces have DTP disabled</strong> via switchport nonegotiate command',
+                      '<strong>No trunk interfaces rely on DTP negotiation</strong> for trunk formation',
+                      '<strong>Trunk interfaces are explicitly configured</strong> without dynamic negotiation'
+                    ],
+                    scope: '<strong>Scope:</strong> This check applies to <strong>Layer 2 switches</strong> that have trunk interfaces configured. We examine all interfaces with &quot;switchport mode trunk&quot; and verify they include &quot;switchport nonegotiate&quot;.',
+                    whyMatters: '<strong>Why it matters:</strong> DTP allows switches to automatically negotiate trunk formation, which can be exploited by attackers to gain unauthorized access to VLANs. Disabling DTP prevents automatic trunk formation and requires explicit configuration, improving security.',
+                    note: '<strong>Note:</strong> Routers are marked as &quot;Not Applicable&quot; for this check because DTP is a Layer 2 protocol used by switches for trunk negotiation. Routers operate at Layer 3 and do not participate in DTP.',
+                    devices: auditResults.devices
+                  }),
+                  createCheckSection({
+                    title: 'Rules allowing access to potentially sensitive services',
+                    checkKey: 'sensitiveServices',
+                    summary: auditResults.summary.sensitiveServicesCompliant,
+                    summaryTotal: auditResults.summary.total,
+                    description: 'This audit verifies that access control lists (ACLs) do not contain overly permissive rules that could allow unauthorized access to sensitive services. We check that:',
+                    bullets: [
+                      '<strong>No any-to-any access rules exist</strong> that permit all traffic',
+                      '<strong>No overly permissive extended ACLs</strong> with permit ip any any',
+                      '<strong>No broad network access rules</strong> that allow access from large subnets',
+                      '<strong>Access rules follow principle of least privilege</strong> with specific source/destination addresses'
+                    ],
+                    scope: '<strong>Scope:</strong> This check applies to <strong>all network devices</strong> (switches and routers). We examine all access control lists for overly permissive rules that could compromise network security.',
+                    whyMatters: '<strong>Why it matters:</strong> Overly permissive access rules create security vulnerabilities by allowing unauthorized access to sensitive services and data. Proper access controls implement the principle of least privilege, limiting access to only what is necessary for legitimate operations.',
+                    devices: auditResults.devices
+                  }),
+                  createCheckSection({
+                    title: 'User account names containing \'admin\'',
+                    checkKey: 'adminAccounts',
+                    summary: auditResults.summary.adminAccountsCompliant,
+                    summaryTotal: auditResults.summary.total,
+                    description: 'This audit verifies that user account names do not contain obvious admin-related keywords that could make them targets for attackers. We check that:',
+                    bullets: [
+                      '<strong>No usernames contain \'admin\'</strong> or variations like \'administrator\'',
+                      '<strong>No usernames contain \'root\'</strong> or other privileged keywords',
+                      '<strong>No usernames contain \'superuser\'</strong> or \'super\' keywords',
+                      '<strong>Usernames use non-obvious naming conventions</strong> that don\'t indicate privilege level'
+                    ],
+                    scope: '<strong>Scope:</strong> This check applies to <strong>all network devices</strong> (switches and routers). We examine all username configurations for admin-related keywords that could make accounts obvious targets for attackers.',
+                    whyMatters: '<strong>Why it matters:</strong> Obvious admin usernames make accounts easy targets for brute force attacks and social engineering. Using non-obvious usernames (like \'gladiator\' instead of \'admin\') makes it harder for attackers to identify privileged accounts and reduces the attack surface.',
+                    devices: auditResults.devices
+                  }),
+                  createCheckSection({
+                    title: 'Low OSPF router priorities',
+                    checkKey: 'ospfPriorities',
+                    summary: auditResults.summary.ospfPrioritiesCompliant,
+                    summaryTotal: auditResults.summary.ospfPrioritiesApplicableDevices,
+                    description: 'This audit verifies that OSPF router priorities are set appropriately to ensure proper Designated Router (DR) and Backup Designated Router (BDR) elections. We check that:',
+                    bullets: [
+                      '<strong>OSPF interfaces have priority ≥ 10</strong> to participate in DR/BDR elections',
+                      '<strong>No interfaces have priority < 10</strong> which prevents DR/BDR participation',
+                      '<strong>Critical interfaces have high priority (≥ 100)</strong> to become DR/BDR',
+                      '<strong>OSPF priority is explicitly configured</strong> instead of relying on defaults'
+                    ],
+                    scope: '<strong>Scope:</strong> This check applies to <strong>routers with OSPF configuration</strong>. We examine all interfaces for OSPF priority settings and verify they are appropriate for DR/BDR elections.',
+                    whyMatters: '<strong>Why it matters:</strong> Low OSPF priorities (especially 0) prevent interfaces from participating in DR/BDR elections, which can lead to suboptimal routing and network instability. Proper priority settings ensure the most capable routers become DR/BDR.',
+                    note: '<strong>Note:</strong> Switches are marked as &quot;Not Applicable&quot; for this check because OSPF is typically configured on routers for inter-area routing. Switches usually operate at Layer 2 and don\'t participate in OSPF DR/BDR elections.',
+                    devices: auditResults.devices
+                  }),
+                  createCheckSection({
+                    title: 'STP loop guard not enabled',
+                    checkKey: 'stpLoopGuard',
+                    summary: auditResults.summary.stpLoopGuardCompliant,
+                    summaryTotal: auditResults.summary.stpLoopGuardApplicableDevices,
+                    description: 'This audit verifies that Spanning Tree Protocol (STP) loop guard is enabled to prevent network loops from unidirectional link failures. We check that:',
+                    bullets: [
+                      '<strong>Global loop guard is enabled</strong> via spanning-tree loopguard default',
+                      '<strong>Interface-level loop guard is configured</strong> via spanning-tree guard loop',
+                      '<strong>Loop guard prevents loops</strong> from unidirectional link failures',
+                      '<strong>STP topology remains stable</strong> during link failures'
+                    ],
+                    scope: '<strong>Scope:</strong> This check applies to <strong>Layer 2 switches</strong> that participate in spanning tree. We look for global loop guard commands and interface-level loop guard configurations.',
+                    whyMatters: '<strong>Why it matters:</strong> Loop guard prevents network loops that can occur from unidirectional link failures. Without loop guard, a unidirectional link failure can cause switches to incorrectly believe they have alternate paths, potentially creating loops and network instability.',
+                    note: '<strong>Note:</strong> Routers are marked as &quot;Not Applicable&quot; for this check because Spanning Tree Protocol (STP) is a Layer 2 protocol used by switches to prevent network loops. Routers operate at Layer 3 and do not participate in STP domains.',
+                    devices: auditResults.devices
+                  }),
+                  createCheckSection({
+                    title: 'Users configured with Cisco Type 5 password hashing algorithm',
+                    checkKey: 'type5Passwords',
+                    summary: auditResults.summary.type5PasswordsCompliant,
+                    summaryTotal: auditResults.summary.total,
+                    description: 'This audit verifies that user accounts are not using weak password hashing algorithms like Cisco Type 4 or Type 5 (MD5). We check that:',
+                    bullets: [
+                      '<strong>No Type 4 (MD5) password hashes</strong> are used for user accounts',
+                      '<strong>No Type 5 (MD5) password hashes</strong> are used for user accounts',
+                      '<strong>Strong password hashing algorithms are used</strong> (Type 8, 9, or 14)',
+                      '<strong>Password security follows best practices</strong> for network devices'
+                    ],
+                    scope: '<strong>Scope:</strong> This check applies to <strong>all network devices</strong> (switches and routers). We examine all username configurations with secret passwords to identify weak hashing algorithms.',
+                    whyMatters: '<strong>Why it matters:</strong> Type 4 and Type 5 password hashes use the weak MD5 algorithm, which is easily cracked with modern computing power and rainbow tables. Strong password hashing (Type 8/9/14) resists brute force attacks and provides better security for privileged accounts.',
+                    devices: auditResults.devices
+                  }),
+                  createCheckSection({
+                    title: 'No BGP route flap prevention',
+                    checkKey: 'bgpRouteFlap',
+                    summary: auditResults.summary.bgpRouteFlapCompliant,
+                    summaryTotal: auditResults.summary.bgpRouteFlapApplicableDevices,
+                    description: 'This audit verifies that BGP route flap prevention mechanisms are configured to maintain network stability during route changes. We check that:',
+                    bullets: [
+                      '<strong>BGP dampening is configured</strong> to prevent flapping routes from being advertised',
+                      '<strong>BGP flap suppress mechanisms</strong> are in place for specific routes',
+                      '<strong>BGP suppress maps</strong> are configured for custom route suppression',
+                      '<strong>BGP route stability</strong> is maintained during network changes'
+                    ],
+                    scope: '<strong>Scope:</strong> This check applies to <strong>routers with BGP configuration</strong>. We examine BGP processes for route flap prevention mechanisms like dampening, flap suppress, and suppress maps.',
+                    whyMatters: '<strong>Why it matters:</strong> BGP route flapping can cause network instability, excessive routing updates, and poor performance. Route flap prevention mechanisms like dampening suppress unstable routes and maintain network stability during route changes.',
+                    note: '<strong>Note:</strong> Switches are marked as &quot;Not Applicable&quot; for this check because BGP is typically configured on routers for inter-domain routing. Switches usually operate at Layer 2 and do not participate in BGP routing.',
+                    devices: auditResults.devices
+                  }),
+                  createCheckSection({
+                    title: 'Unrestricted NTP control queries',
+                    checkKey: 'ntpControlQueries',
+                    summary: auditResults.summary.ntpControlQueriesCompliant,
+                    summaryTotal: auditResults.summary.ntpControlQueriesApplicableDevices,
+                    description: 'This audit verifies that NTP control queries are properly restricted to prevent unauthorized access and information disclosure. We check that:',
+                    bullets: [
+                      '<strong>NTP access restrictions are configured</strong> via ntp access-group or ntp restrict',
+                      '<strong>NTP control query restrictions are in place</strong> with appropriate options',
+                      '<strong>Unauthorized NTP queries are blocked</strong> to prevent information disclosure',
+                      '<strong>NTP security follows best practices</strong> for network time services'
+                    ],
+                    scope: '<strong>Scope:</strong> This check applies to <strong>all devices with NTP configuration</strong> (switches and routers). We examine NTP configurations for access restrictions and control query limitations.',
+                    whyMatters: '<strong>Why it matters:</strong> Unrestricted NTP control queries can allow attackers to gather information about network topology, time sources, and system configuration. Proper NTP access restrictions prevent unauthorized queries and protect sensitive network information.',
+                    devices: auditResults.devices
+                  })
+                )
+              )
+            );
+          }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(h(NetworkAuditTool));
+    </script>
+</body>
+</html>
